@@ -9,7 +9,7 @@ client_id = ''
 client_secret = ''
 redirect_uri = 'http://localhost:5000/callback'
 
-spotify = spotify_api(client_id,client_secret,'user-top-read,playlist-modify-public',redirect_uri)
+spotify = spotify_api(client_id,client_secret,'user-top-read,playlist-modify-public,playlist-read-private,playlist-read-collaborative',redirect_uri)
 authorize = spotify.get_url()
 
 @app.route('/')
@@ -59,6 +59,7 @@ def top_artists():
         <a href='/topartists'>Click here to see your top artists</a>
         <a href='/topsongs'>Click here to see your top songs</a>
         <a href='/search'>Click here to search</a>
+        <a href='/viewplaylists'>Click here to see your playlists</a>
     </div>
     <div>
         <h1>Here are your top artists</h1>
@@ -97,6 +98,7 @@ def top_songs():
         <a href='/topartists'>Click here to see your top artists</a>
         <a href='/topsongs'>Click here to see your top songs</a>
         <a href='/search'>Click here to search</a>
+        <a href='/viewplaylists'>Click here to see your playlists</a>
     </div>
     <div>
         <h1>Here are your top songs</h1>
@@ -139,6 +141,7 @@ def make_search():
                 <a href='/topartists'>Click here to see your top artists</a>
                 <a href='/topsongs'>Click here to see your top songs</a>
                 <a href='/search'>Click here to search</a>
+                <a href='/viewplaylists'>Click here to see your playlists</a>
             </div>
             <h1>Enter a track name or <a href='https://community.spotify.com/t5/Spotify-Answers/What-s-a-Spotify-URI/ta-p/919201'>spotify playlist uri</a> here!</h1>
             <div class="input-group mb-3">
@@ -265,6 +268,50 @@ def tracks():
     artist = track_data['artists'][0]['name']
 
     return redirect(url_for('audio_features',feat=track_id,img=img,artist=artist,name=name))
+
+@app.route('/viewplaylists')
+def view_playlists():
+    user_playlists = spotify.get_user_playlists()
+    img,names,ids = [],[],[]
+    for playlists in user_playlists['items']:
+        try:
+            img.append(playlists['images'][0]['url'])
+        except:
+            img.append('https://www.pngkey.com/png/detail/113-1138845_question-mark-inside-square-question-mark-icon-white.png')
+        names.append(playlists['name'])
+        ids.append(playlists['uri'])
+
+    table = "<div class='row'>"
+    for idx in range(len(names)):
+        table += "<div class='col' style='margin: 10px;'><figure><a href='/playlistdata?playlist=%s'><img src='%s' height='300px' width='300px'></a><figcaption>%s</figcaption></figure></div>"%(ids[idx],img[idx],names[idx])
+    table += '</div>'
+    return '''
+    <html>
+        <head>
+            <title>Spotify Data</title>
+            <link rel="stylesheet" href='/static/style.css'>
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" crossorigin="anonymous">
+		    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-ygbV9kiqUc6oa4msXn9868pTtWMgiQaeYH7/t7LECLbyPA2x65Kgf80OJFdroafW" crossorigin="anonymous"></script>
+        </head>
+        <body>
+        <div>
+            <div>
+                <a href='/topartists'>Click here to see your top artists</a>
+                <a href='/topsongs'>Click here to see your top songs</a>
+                <a href='/search'>Click here to search</a>
+                <a href='/viewplaylists'>Click here to see your playlists</a>
+            </div>
+            <h1>Enter a track name or <a href='https://community.spotify.com/t5/Spotify-Answers/What-s-a-Spotify-URI/ta-p/919201'>spotify playlist uri</a> here!</h1>
+            <div class="input-group mb-3">
+                <input type="text" id='search' class="form-control" aria-describedby="button-addon2">
+                <button class="btn btn-outline-secondary" type="button" id="button-addon2" onclick="makeSearch()">Search</button>
+            </div>        
+        </div>
+            %s
+            <script type='text/javascript' src='static/search.js'></script>
+        </body>
+    </html>
+    '''%(table)
 
 if __name__ == "__main__":
     app.run()

@@ -132,3 +132,8 @@ class spotify_api():
     def fill_playlist(self,id,uris):
         response = requests.post("https://api.spotify.com/v1/playlists/%s/tracks?uris=%s"%(id,uris),headers=self.headers)
         return response.json()
+
+    def get_user_playlists(self):
+        response = requests.get('https://api.spotify.com/v1/me/playlists',headers=self.headers)
+        return response.json()
+    

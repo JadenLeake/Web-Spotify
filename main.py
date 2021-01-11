@@ -5,11 +5,11 @@ from parseJSON import parse_json
 
 app = Flask(__name__)
 
-client_id = ''
-client_secret = ''
+client_id = '26c35b7190da459584f5534423c51888'
+client_secret = 'a812b20459834130ae10039ac7a9264b'
 redirect_uri = 'http://localhost:5000/callback'
 
-spotify = spotify_api(client_id,client_secret,'user-top-read,playlist-modify-public,playlist-read-private,playlist-read-collaborative',redirect_uri)
+spotify = spotify_api(client_id,client_secret,'user-top-read,playlist-modify-public,playlist-read-private,playlist-modify-private,playlist-read-collaborative',redirect_uri)
 authorize = spotify.get_url()
 
 @app.route('/')
@@ -38,11 +38,8 @@ def top_artists():
     except:
         pass
     artist_names = parse_json.extract_values(artist_data,'name')
-    #artist_picture = parse_json.extract_values(artist_data,'images')
     artist_popluraity = parse_json.extract_values(artist_data,'popularity')
     artist_followers = parse_json.extract_values(artist_data,'total')
-    print(artist_popluraity)
-    print(artist_followers)
 
     table = "<table><tr><th>Artist</th><th>Popularity</th><th>Followers</th></tr>"
     for idx,names in enumerate(artist_names):
@@ -78,11 +75,13 @@ def top_songs():
             return redirect(url_for('starter'))
     except:
         pass
-    song_names = []
-    song_links = []
+    song_names,song_links,song_uris = [],[],[]
+
     for obj in song_data['items']:
         song_names.append(obj['name'])
         song_links.append(obj['external_urls']['spotify'])
+        song_uris.append(obj['uri'])
+    songs_csv = ','.join(song_uris)
     table = "<table><tr><th>Artist</th></tr>"
     for idx,names in enumerate(song_names):
         table += "<tr><td><a href='%s' target='_blank'>%s</a></td></tr>"%(song_links[idx],names)
@@ -104,9 +103,20 @@ def top_songs():
         <h1>Here are your top songs</h1>
         %s
     </div>
+    <a href="/makeplaylist?s=%s" target='_blank'>Click here to make a playlist</a>
     </body>
     </html>
-    ''' %table
+    ''' %(table,songs_csv)
+
+
+@app.route('/makeplaylist')
+def make_playlist():
+    user = spotify.get_user()
+    user_id = user['id']
+    top_playlist = spotify.make_playlist(user_id,"Top Songs","Here are your most listened to songs!")
+    songs = request.args.get('s')
+    spotify.fill_playlist(top_playlist['id'],songs)
+    return "Your playlist has been made! <a href='/playlistdata?playlist=%s'>Click here to view it!</a>" %top_playlist['uri']
 
 @app.route('/search')
 def make_search():

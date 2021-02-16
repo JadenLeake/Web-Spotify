@@ -10,8 +10,6 @@
     <body>
     <div>
         <div>
-            <a href='/topartists'>Click here to see your top artists</a>
-            <a href='/topsongs'>Click here to see your top songs</a>
             <a href='/search'>Click here to search</a>
         </div>
         <h1>Search for tracks here</h1>
@@ -40,6 +38,10 @@
         <h1>Instrumentalness</h1>
         <div class="progress">
             <div class="progress-bar" role="progressbar" style="width: {{instrumentalness}}%" aria-valuemin="0" aria-valuemax="100">{{instrumentalness}}%</div>
+        </div>
+        <h1>Valence</h1>
+        <div class="progress">
+            <div class="progress-bar" role="progressbar" style="width: {{valence}}%" aria-valuemin="0" aria-valuemax="100">{{valence}}%</div>
         </div>
     </div>
         <script type='text/javascript' src='static/search.js'></script>

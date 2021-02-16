@@ -29,7 +29,7 @@ def main():
     artist_data = spotify.get_user_artists()
     artist_names = parse_json.extract_values(artist_data,'name')
 
-    artist_table = "<table><tr><th>Artist</th></tr>"
+    artist_table = "<table class='table text-light'><tr><th>Artist</th></tr>"
     for idx,names in enumerate(artist_names):
         artist_table += "<tr><td>%s</td></tr>"%(names)
     artist_table += "</table>"
@@ -42,7 +42,7 @@ def main():
         song_links.append(obj['external_urls']['spotify'])
         song_uris.append(obj['uri'])
 
-    song_table = "<table><tr><th>Song</th></tr>"
+    song_table = "<table class='table text-light'><tr><th>Song</th></tr>"
     for idx,names in enumerate(song_names):
         song_table += "<tr><td><a href='%s' target='_blank'>%s</a></td></tr>"%(song_links[idx],names)
     song_table += "</table>"
@@ -51,29 +51,30 @@ def main():
     <html>
         <head>
             <title>Spotify Data</title>
-            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" 
-                rel="stylesheet" 
-                integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" 
-                crossorigin="anonymous">
+            <link href="static/bootstrap.min.css" rel="stylesheet">
         </head>
-        <body>
-        <div>
-            <a href='/viewplaylists'>Click here to see your playlists</a>
+        <body class="d-flex h-100 text-center text-white bg-dark">
+        <div class="cover-container d-flex w-100 h-100 p-3 mx-auto flex-column">
+            <header>
+                <nav class="nav nav-masthead justify-content-center float-md-end">
+                    <a class="nav-link" href='/viewplaylists'>Click here to see your playlists</a>
+                </nav>
+            </header>
+            <div>
+                <h1>Enter a track name or <a href='https://community.spotify.com/t5/Spotify-Answers/What-s-a-Spotify-URI/ta-p/919201'>spotify playlist uri</a> here!</h1>
+                <div class="input-group mb-3">
+                    <input type="text" id='search' class="form-control" aria-describedby="button-addon2">
+                    <button class="btn btn-outline-secondary" type="button" id="button-addon2" onclick="makeSearch()">Search</button>
+                </div>        
+            </div>
+            <div>
+                %s
+            </div>
+            <div>
+                %s
+            </div>
         </div>
-        <div>
-            <h1>Enter a track name or <a href='https://community.spotify.com/t5/Spotify-Answers/What-s-a-Spotify-URI/ta-p/919201'>spotify playlist uri</a> here!</h1>
-            <div class="input-group mb-3">
-                <input type="text" id='search' class="form-control" aria-describedby="button-addon2">
-                <button class="btn btn-outline-secondary" type="button" id="button-addon2" onclick="makeSearch()">Search</button>
-            </div>        
-        </div>
-        <div>
-            %s
-        </div>
-        <div>
-            %s
-        </div>
-            <script type='text/javascript' src='static/search.js'></script>
+        <script type='text/javascript' src='static/search.js'></script>
         </body>
     </html>
 ''' %(artist_table,song_table)
@@ -145,8 +146,6 @@ def top_songs():
     </head>
     <body>
     <div>
-        <a href='/topartists'>Click here to see your top artists</a>
-        <a href='/topsongs'>Click here to see your top songs</a>
         <a href='/search'>Click here to search</a>
         <a href='/viewplaylists'>Click here to see your playlists</a>
     </div>
@@ -230,8 +229,9 @@ def audio_features(feat=None,img=None,artist=None,name=None):
     dance = float(song_features['danceability'])*100
     energy = float(song_features['energy'])*100
     instrumentalness = float(song_features['instrumentalness'])*100
-    print(dance,song_features['danceability'],energy,song_features['energy'],instrumentalness,song_features['instrumentalness'])
-    return render_template('songanalysis.html',img=img,artist=artist,name=name,dance=dance,energy=energy,instrumentalness=instrumentalness)
+    valence = float(song_features['valence'])*100
+    #print(dance,song_features['danceability'],energy,song_features['energy'],instrumentalness,song_features['instrumentalness'])
+    return render_template('songanalysis.html',img=img,artist=artist,name=name,dance=dance,energy=energy,instrumentalness=instrumentalness,valence=valence)
 
 @app.route('/playlistdata')
 def playlists():
@@ -265,7 +265,7 @@ def playlists():
     duration_ms = 0
     while next_playlist[0] != None: # If the playlist is larger than 100 songs this will be able to get each "page"
         next_page = spotify.get_next_playlist(next_playlist[0])
-        temp_id.clear()
+        temp_id.clear() 
         for songs in next_page['items']:
             song_names.append(songs['track']['name'])
             song_img.append(songs['track']['album']['images'][0]['url'])
@@ -287,7 +287,7 @@ def playlists():
     energy_avg = (sum(energy) / len(energy)) *100
     instrumentalness_avg = (sum(instrumentalness) / len(instrumentalness)) *100
     valence_avg = (sum(valence) / len(valence)) *100
-    print(duration_ms)
+
     table = "<div class='row'>"
     for idx,names in enumerate(song_names):
         table += "<div class='col child'><tr><figure><td><a href='/features?feat=%s&img=%s&artist=%s&name=%s'><img src='%s' width='250' height='250'></a></td><figcaption><td>%s</td><br><td>%s</td></figcaption></figure></tr></div>"%(song_id[idx],song_img[idx],song_artist[idx],names,song_img[idx],song_artist[idx],names)
@@ -386,8 +386,6 @@ def view_playlists():
         <body>
         <div>
             <div>
-                <a href='/topartists'>Click here to see your top artists</a>
-                <a href='/topsongs'>Click here to see your top songs</a>
                 <a href='/search'>Click here to search</a>
                 <a href='/viewplaylists'>Click here to see your playlists</a>
             </div>

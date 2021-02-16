@@ -26,12 +26,63 @@ def main():
             return redirect(url_for('starter'))
     except:
         pass
-    return render_template('index.html')
+    artist_data = spotify.get_user_artists()
+    artist_names = parse_json.extract_values(artist_data,'name')
+
+    artist_table = "<table><tr><th>Artist</th></tr>"
+    for idx,names in enumerate(artist_names):
+        artist_table += "<tr><td>%s</td></tr>"%(names)
+    artist_table += "</table>"
+
+    song_data = spotify.get_user_tracks()
+    song_names,song_links,song_uris = [],[],[]
+
+    for obj in song_data['items']:
+        song_names.append(obj['name'])
+        song_links.append(obj['external_urls']['spotify'])
+        song_uris.append(obj['uri'])
+
+    song_table = "<table><tr><th>Song</th></tr>"
+    for idx,names in enumerate(song_names):
+        song_table += "<tr><td><a href='%s' target='_blank'>%s</a></td></tr>"%(song_links[idx],names)
+    song_table += "</table>"
+    
+    return '''
+    <html>
+        <head>
+            <title>Spotify Data</title>
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" 
+                rel="stylesheet" 
+                integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" 
+                crossorigin="anonymous">
+        </head>
+        <body>
+        <div>
+            <a href='/viewplaylists'>Click here to see your playlists</a>
+        </div>
+        <div>
+            <h1>Enter a track name or <a href='https://community.spotify.com/t5/Spotify-Answers/What-s-a-Spotify-URI/ta-p/919201'>spotify playlist uri</a> here!</h1>
+            <div class="input-group mb-3">
+                <input type="text" id='search' class="form-control" aria-describedby="button-addon2">
+                <button class="btn btn-outline-secondary" type="button" id="button-addon2" onclick="makeSearch()">Search</button>
+            </div>        
+        </div>
+        <div>
+            %s
+        </div>
+        <div>
+            %s
+        </div>
+            <script type='text/javascript' src='static/search.js'></script>
+        </body>
+    </html>
+''' %(artist_table,song_table)
 
 @app.route('/topartists')
 
 def top_artists():
     artist_data = spotify.get_user_artists()
+    
     try:
         if artist_data['error']['status'] == 401:
             return redirect(url_for('starter'))
@@ -187,6 +238,8 @@ def playlists():
     playlist = request.args.get("playlist")
     playlist_id = playlist[17::]
     playlist_data = spotify.get_playlist(playlist_id)
+    next_playlist = parse_json.extract_values(playlist_data,'next')
+
     try:
         if playlist_data['error']['status'] == 401:
             return redirect(url_for('starter'))
@@ -194,7 +247,7 @@ def playlists():
         pass
     playlist_name = playlist_data['name']
 
-    song_names,song_img,song_artist,song_id = [],[],[],[] # Get images, names, artists and song ids of playlist
+    temp_id,song_names,song_img,song_artist,song_id = [],[],[],[],[] # Get images, names, artists and song ids of playlist
     for songs in playlist_data['tracks']['items']:
         song_names.append(songs['track']['name'])
         song_img.append(songs['track']['album']['images'][0]['url'])
@@ -202,20 +255,44 @@ def playlists():
         song_id.append(songs['track']['id'])
 
     song_analysis = spotify.get_analysis(song_id)
-    dance, energy, instrumentalness = [],[],[] # Get audio analysis of songs
+    dance, energy, instrumentalness,valence = [],[],[],[] # Get audio analysis of songs
     for analysis in song_analysis['audio_features']:
         dance.append(analysis['danceability'])
         energy.append(analysis['energy'])
         instrumentalness.append(analysis['instrumentalness'])
-    
+        valence.append(analysis['valence'])
+
+    duration_ms = 0
+    while next_playlist[0] != None: # If the playlist is larger than 100 songs this will be able to get each "page"
+        next_page = spotify.get_next_playlist(next_playlist[0])
+        temp_id.clear()
+        for songs in next_page['items']:
+            song_names.append(songs['track']['name'])
+            song_img.append(songs['track']['album']['images'][0]['url'])
+            song_artist.append(songs['track']['artists'][0]['name'])
+            song_id.append(songs['track']['id'])
+            temp_id.append(songs['track']['id'])
+            duration_ms += int(songs['track']['duration_ms'])
+
+        song_analysis = spotify.get_analysis(temp_id)
+        for analysis in song_analysis['audio_features']:
+            dance.append(analysis['danceability'])
+            energy.append(analysis['energy'])
+            instrumentalness.append(analysis['instrumentalness'])
+            valence.append(analysis['valence'])
+
+        next_playlist = parse_json.extract_values(next_page,'next')
+
     dance_avg = (sum(dance) / len(dance)) *100
     energy_avg = (sum(energy) / len(energy)) *100
     instrumentalness_avg = (sum(instrumentalness) / len(instrumentalness)) *100
-
+    valence_avg = (sum(valence) / len(valence)) *100
+    print(duration_ms)
     table = "<div class='row'>"
     for idx,names in enumerate(song_names):
         table += "<div class='col child'><tr><figure><td><a href='/features?feat=%s&img=%s&artist=%s&name=%s'><img src='%s' width='250' height='250'></a></td><figcaption><td>%s</td><br><td>%s</td></figcaption></figure></tr></div>"%(song_id[idx],song_img[idx],song_artist[idx],names,song_img[idx],song_artist[idx],names)
     table += "</div>"
+
     return '''
     <html>
         <head>
@@ -227,8 +304,6 @@ def playlists():
         <body>
         <div>
             <div>
-                <a href='/topartists'>Click here to see your top artists</a>
-                <a href='/topsongs'>Click here to see your top songs</a>
                 <a href='/search'>Click here to search</a>
                 <a href='/viewplaylists'>Click here to see your playlists</a>
             </div>
@@ -239,7 +314,8 @@ def playlists():
             </div>        
         </div>
         <h1>%s</h1>
-        <div class='container overflow-auto cont' style='width: 100%%; height: 32%%;'>   
+        <h2>%f</h2>
+        <div class='container overflow-auto cont' style='width: 100%%; height: 65%%;'>   
             %s
         </div>
         <h1>Danceability</h1>
@@ -256,10 +332,14 @@ def playlists():
         <div class="progress">
             <div class="progress-bar" role="progressbar" style="width: %.2f%%" aria-valuemin="0" aria-valuemax="100">%.2f%%</div>
         </div>
+        <h1>Valence</h1>
+        <div class="progress">
+            <div class="progress-bar" role="progressbar" style="width: %.2f%%" aria-valuemin="0" aria-valuemax="100">%.2f%%</div>
+        </div>
             <script type='text/javascript' src='static/search.js'></script>
         </body>
     </html>
-    '''%(playlist_name,table,dance_avg,dance_avg,energy_avg,energy_avg,instrumentalness_avg,instrumentalness_avg)
+    '''%(playlist_name,duration_ms,table,dance_avg,dance_avg,energy_avg,energy_avg,instrumentalness_avg,instrumentalness_avg,valence_avg,valence_avg)
 
 @app.route('/searchtrack')
 def tracks():

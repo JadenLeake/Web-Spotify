@@ -26,6 +26,7 @@ def main():
             return redirect(url_for('starter'))
     except:
         pass
+    '''
     artist_data = spotify.get_user_artists()
     artist_names = parse_json.extract_values(artist_data,'name')
 
@@ -33,51 +34,51 @@ def main():
     for idx,names in enumerate(artist_names):
         artist_table += "<tr><td>%s</td></tr>"%(names)
     artist_table += "</table>"
+    '''
 
     song_data = spotify.get_user_tracks()
-    song_names,song_links,song_uris = [],[],[]
+    song_names,song_img,song_artist,song_id = [],[],[],[]
 
-    for obj in song_data['items']:
-        song_names.append(obj['name'])
-        song_links.append(obj['external_urls']['spotify'])
-        song_uris.append(obj['uri'])
+    for songs in song_data['items']:
+        song_names.append(songs['name'])
+        song_img.append(songs['album']['images'][0]['url'])
+        song_artist.append(songs['artists'][0]['name'])
+        song_id.append(songs['id'])
 
-    song_table = "<table class='table text-light'><tr><th>Song</th></tr>"
+    table = "<div class='row'>"
     for idx,names in enumerate(song_names):
-        song_table += "<tr><td><a href='%s' target='_blank'>%s</a></td></tr>"%(song_links[idx],names)
-    song_table += "</table>"
+        table += "<div class='col child'><tr><figure><td><a href='/features?feat=%s&img=%s&artist=%s&name=%s'><img src='%s' width='250' height='250'></a></td><figcaption><td>%s</td><br><td>%s</td></figcaption></figure></tr></div>"%(song_id[idx],song_img[idx],song_artist[idx],names,song_img[idx],song_artist[idx],names)
+    table += "</div>"
     
     return '''
     <html>
         <head>
             <title>Spotify Data</title>
             <link href="static/bootstrap.min.css" rel="stylesheet">
+            <link href="static/cover.css" rel="stylesheet">
         </head>
-        <body class="d-flex h-100 text-center text-white bg-dark">
-        <div class="cover-container d-flex w-100 h-100 p-3 mx-auto flex-column">
-            <header>
+        <body class="d-flex h-100 justify-content-center text-center text-white bg-dark">
+        <div>
+            <header class="mb-auto">
                 <nav class="nav nav-masthead justify-content-center float-md-end">
-                    <a class="nav-link" href='/viewplaylists'>Click here to see your playlists</a>
+                    <a class="nav-link fs-2" href='/viewplaylists'>My playlists</a>
                 </nav>
             </header>
             <div>
-                <h1>Enter a track name or <a href='https://community.spotify.com/t5/Spotify-Answers/What-s-a-Spotify-URI/ta-p/919201'>spotify playlist uri</a> here!</h1>
                 <div class="input-group mb-3">
-                    <input type="text" id='search' class="form-control" aria-describedby="button-addon2">
+                    <input type="text" id='search' placeholder="Paste the link of a song or playlist here! Or just search a name!" class="form-control" aria-describedby="button-addon2">
                     <button class="btn btn-outline-secondary" type="button" id="button-addon2" onclick="makeSearch()">Search</button>
                 </div>        
             </div>
-            <div>
-                %s
-            </div>
-            <div>
+            <h1>Your top songs<h1>
+            <div class='container overflow-auto cont' style='width: 100%%; height: 65%%;'> 
                 %s
             </div>
         </div>
         <script type='text/javascript' src='static/search.js'></script>
         </body>
     </html>
-''' %(artist_table,song_table)
+''' %(table)
 
 @app.route('/topartists')
 
@@ -189,28 +190,25 @@ def make_search():
     <html>
         <head>
             <title>Spotify Data</title>
-            <link rel="stylesheet" href='/static/style.css'>
-            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" 
-                  rel="stylesheet" 
-                  integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" 
-                  crossorigin="anonymous">
+            <link href="static/bootstrap.min.css" rel="stylesheet">
+            <link href="static/cover.css" rel="stylesheet">
         </head>
-        <body>
+        <body class="d-flex justify-content-center text-center text-white bg-dark">
         <div>
-            <div>
-                <a href='/topartists'>Click here to see your top artists</a>
-                <a href='/topsongs'>Click here to see your top songs</a>
-                <a href='/search'>Click here to search</a>
-                <a href='/viewplaylists'>Click here to see your playlists</a>
-            </div>
-            <h1>Enter a track name or <a href='https://community.spotify.com/t5/Spotify-Answers/What-s-a-Spotify-URI/ta-p/919201'>spotify playlist uri</a> here!</h1>
+            <header class="mb-auto">
+                <nav class="nav nav-masthead justify-content-center float-md-end">
+                    <a class="nav-link fs-2" href='/search'>Search</a>
+                    <a class="nav-link fs-2" href='/viewplaylists'>My playlists</a>
+                </nav>
+            </header>
             <div class="input-group mb-3">
-                <input type="text" id='search' class="form-control" aria-describedby="button-addon2">
+                <input type="text" id='search' placeholder="Paste the link of a song or playlist here! Or just search a name!" class="form-control" aria-describedby="button-addon2">
                 <button class="btn btn-outline-secondary" type="button" id="button-addon2" onclick="makeSearch()">Search</button>
-            </div>        
-        </div>
-        <div>
-            %s
+            </div>
+            <label>Click on the artist image to get an audio analysis!</label>        
+            <div>
+                %s
+            </div>
         </div>
             <script type='text/javascript' src='static/search.js'></script>
         </body>
@@ -239,6 +237,7 @@ def playlists():
     playlist_id = playlist[17::]
     playlist_data = spotify.get_playlist(playlist_id)
     next_playlist = parse_json.extract_values(playlist_data,'next')
+    num_tracks = playlist_data['tracks']['total']
 
     try:
         if playlist_data['error']['status'] == 401:
@@ -297,49 +296,49 @@ def playlists():
     <html>
         <head>
             <title>Spotify Data</title>
-            <link rel="stylesheet" href='/static/style.css'>
-            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" crossorigin="anonymous">
-		    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-ygbV9kiqUc6oa4msXn9868pTtWMgiQaeYH7/t7LECLbyPA2x65Kgf80OJFdroafW" crossorigin="anonymous"></script>
+            <link href="static/bootstrap.min.css" rel="stylesheet">
+            <link href="static/cover.css" rel="stylesheet">
         </head>
-        <body>
-        <div>
+        <body class="d-flex h-100 justify-content-center text-center text-white bg-dark">
             <div>
-                <a href='/search'>Click here to search</a>
-                <a href='/viewplaylists'>Click here to see your playlists</a>
+                <header class="mb-auto">
+                    <nav class="nav nav-masthead justify-content-center float-md-end">
+                        <a class="nav-link fs-2" href='/search'>Search</a>
+                        <a class="nav-link fs-2" href='/viewplaylists'>My playlists</a>
+                    </nav>
+                </header>
+                <div class="input-group mb-3">
+                    <input type="text" id='search' placeholder="Paste the link of a song or playlist here! Or just search a name!" class="form-control" aria-describedby="button-addon2">
+                    <button class="btn btn-outline-secondary" type="button" id="button-addon2" onclick="makeSearch()">Search</button>
+                </div>        
+                <h1>%s</h1>
+                <h2>Tracks: %s</h2>
+                <div class='container overflow-auto cont' style='width: 100%%; height: 65%%;'>   
+                    %s
+                </div>
+                <h1>Danceability</h1>
+                <div class="progress">
+                    <div class="progress-bar" role="progressbar" style="width: %.2f%%" aria-valuemin="0" aria-valuemax="1">%.2f%%</div>
+                </div>
+                <br>
+                <h1>Energy</h1>
+                <div class="progress">
+                    <div class="progress-bar" role="progressbar" style="width:%.2f%%" aria-valuemin="0" aria-valuemax="100">%.2f%%</div>      
+                </div>
+                <br>
+                <h1>Instrumentalness</h1>
+                <div class="progress">
+                    <div class="progress-bar" role="progressbar" style="width: %.2f%%" aria-valuemin="0" aria-valuemax="100">%.2f%%</div>
+                </div>
+                <h1>Valence</h1>
+                <div class="progress">
+                    <div class="progress-bar" role="progressbar" style="width: %.2f%%" aria-valuemin="0" aria-valuemax="100">%.2f%%</div>
+                </div>
             </div>
-            <h1>Enter a track name or <a href='https://community.spotify.com/t5/Spotify-Answers/What-s-a-Spotify-URI/ta-p/919201'>spotify playlist uri</a> here!</h1>
-            <div class="input-group mb-3">
-                <input type="text" id='search' class="form-control" aria-describedby="button-addon2">
-                <button class="btn btn-outline-secondary" type="button" id="button-addon2" onclick="makeSearch()">Search</button>
-            </div>        
-        </div>
-        <h1>%s</h1>
-        <h2>%f</h2>
-        <div class='container overflow-auto cont' style='width: 100%%; height: 65%%;'>   
-            %s
-        </div>
-        <h1>Danceability</h1>
-        <div class="progress">
-            <div class="progress-bar" role="progressbar" style="width: %.2f%%" aria-valuemin="0" aria-valuemax="1">%.2f%%</div>
-        </div>
-        <br>
-        <h1>Energy</h1>
-        <div class="progress">
-            <div class="progress-bar" role="progressbar" style="width:%.2f%%" aria-valuemin="0" aria-valuemax="100">%.2f%%</div>      
-        </div>
-        <br>
-        <h1>Instrumentalness</h1>
-        <div class="progress">
-            <div class="progress-bar" role="progressbar" style="width: %.2f%%" aria-valuemin="0" aria-valuemax="100">%.2f%%</div>
-        </div>
-        <h1>Valence</h1>
-        <div class="progress">
-            <div class="progress-bar" role="progressbar" style="width: %.2f%%" aria-valuemin="0" aria-valuemax="100">%.2f%%</div>
-        </div>
-            <script type='text/javascript' src='static/search.js'></script>
+                <script type='text/javascript' src='static/search.js'></script>
         </body>
     </html>
-    '''%(playlist_name,duration_ms,table,dance_avg,dance_avg,energy_avg,energy_avg,instrumentalness_avg,instrumentalness_avg,valence_avg,valence_avg)
+    '''%(playlist_name,num_tracks,table,dance_avg,dance_avg,energy_avg,energy_avg,instrumentalness_avg,instrumentalness_avg,valence_avg,valence_avg)
 
 @app.route('/searchtrack')
 def tracks():
@@ -379,19 +378,19 @@ def view_playlists():
     <html>
         <head>
             <title>Spotify Data</title>
-            <link rel="stylesheet" href='/static/style.css'>
-            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" crossorigin="anonymous">
-		    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-ygbV9kiqUc6oa4msXn9868pTtWMgiQaeYH7/t7LECLbyPA2x65Kgf80OJFdroafW" crossorigin="anonymous"></script>
+            <link href="static/bootstrap.min.css" rel="stylesheet">
+            <link href="static/cover.css" rel="stylesheet">
         </head>
-        <body>
+        <body class="text-white bg-dark">
         <div>
-            <div>
-                <a href='/search'>Click here to search</a>
-                <a href='/viewplaylists'>Click here to see your playlists</a>
-            </div>
-            <h1>Enter a track name or <a href='https://community.spotify.com/t5/Spotify-Answers/What-s-a-Spotify-URI/ta-p/919201'>spotify playlist uri</a> here!</h1>
+            <header class="mb-auto">
+                <nav class="nav nav-masthead justify-content-center float-md-end">
+                    <a class="nav-link fs-2" href='/search'>Search</a>
+                    <a class="nav-link fs-2" href='/viewplaylists'>My playlists</a>
+                </nav>
+            </header>
             <div class="input-group mb-3">
-                <input type="text" id='search' class="form-control" aria-describedby="button-addon2">
+                <input type="text" id='search' placeholder="Paste the link of a song or playlist here! Or just search a name!" class="form-control" aria-describedby="button-addon2">
                 <button class="btn btn-outline-secondary" type="button" id="button-addon2" onclick="makeSearch()">Search</button>
             </div>        
         </div>

@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 
 app = Flask(__name__)
 load_dotenv() #Get env variables
-
+#Comment here for testing purpsose
 client_id = os.getenv("CLIENT")
 client_secret = os.getenv("SECRET")
 redirect_uri = 'https://Web-Spotify.jadenleake.repl.co/callback'

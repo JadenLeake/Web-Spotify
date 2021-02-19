@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 
 app = Flask(__name__)
 load_dotenv() #Get env variables
-#Comment here for testing purpsose
+
 client_id = os.getenv("CLIENT")
 client_secret = os.getenv("SECRET")
 redirect_uri = 'https://Web-Spotify.jadenleake.repl.co/callback'
@@ -29,8 +29,7 @@ def starter():
 @app.route('/callback')
 def main():
     #find_code = request.url.find("?code=")
-    exchange_code = request.args.get(
-        'code')  # Parse the code from callback url
+    exchange_code = request.args.get('code')  # Parse the code from callback url
     try:
         if spotify.get_access_token(exchange_code)['error'] == 'invalid_grant':
             return redirect(url_for('starter'))
@@ -242,6 +241,8 @@ def audio_features(feat=None, img=None, artist=None, name=None):
     artist = request.args.get("artist")
     name = request.args.get('name')
 
+    if "'" in name:
+        name.replace("'","")
     song_features = spotify.get_analysis(song_id)
 
     dance = float(song_features['danceability']) * 100

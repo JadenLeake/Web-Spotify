@@ -56,9 +56,9 @@ def main():
 
     table = "<div class='row'>"
     for idx, names in enumerate(song_names):
-        table += "<div class='col child'><tr><figure><td><a href='/features?feat=%s&img=%s&artist=%s&name=%s'><img src='%s' width='250' height='250'></a></td><figcaption><td>%s</td><br><td>%s</td></figcaption></figure></tr></div>" % (
-            song_id[idx], song_img[idx], song_artist[idx], names,
-            song_img[idx], song_artist[idx], names)
+        if names.find("'"):
+          names = names.replace("'","")
+        table += "<div class='col child'><tr><figure><td><a href='/features?feat=%s&img=%s&artist=%s&name=%s'><img src='%s' width='250' height='250'></a></td><figcaption><td>%s</td><br><td>%s</td></figcaption></figure></tr></div>" % (song_id[idx], song_img[idx], song_artist[idx], names,song_img[idx], song_artist[idx], names)
     table += "</div>"
 
     return '''
@@ -200,6 +200,8 @@ def make_search():
 
     table = "<table><tr><th></th><th>Artist</th><th>Song Name</th><th>Preview</th></tr>"
     for idx, names in enumerate(song_names):
+        if names.find("'"):
+          names = names.replace("'","")
         table += "<tr><td><a href='/features?feat=%s&img=%s&artist=%s&name=%s'><img src='%s' width='250' height='250'></a></td><td>%s</td><td>%s</td><td><audio controls src='%s'></td></tr>" % (
             song_id[idx], song_img[idx], song_artist[idx], names,
             song_img[idx], song_artist[idx], names, song_preview[idx])
@@ -241,8 +243,6 @@ def audio_features(feat=None, img=None, artist=None, name=None):
     artist = request.args.get("artist")
     name = request.args.get('name')
 
-    if "'" in name:
-        name.replace("'","")
     song_features = spotify.get_analysis(song_id)
 
     dance = float(song_features['danceability']) * 100
@@ -275,8 +275,7 @@ def playlists():
         pass
     playlist_name = playlist_data['name']
 
-    temp_id, song_names, song_img, song_artist, song_id = [], [], [], [], [
-    ]  # Get images, names, artists and song ids of playlist
+    temp_id, song_names, song_img, song_artist, song_id = [], [], [], [], []  # Get images, names, artists and song ids of playlist
     for songs in playlist_data['tracks']['items']:
         song_names.append(songs['track']['name'])
         song_img.append(songs['track']['album']['images'][0]['url'])
@@ -284,8 +283,7 @@ def playlists():
         song_id.append(songs['track']['id'])
 
     song_analysis = spotify.get_analysis(song_id)
-    dance, energy, instrumentalness, valence = [], [], [], [
-    ]  # Get audio analysis of songs
+    dance, energy, instrumentalness, valence = [], [], [], []  # Get audio analysis of songs
     for analysis in song_analysis['audio_features']:
         dance.append(analysis['danceability'])
         energy.append(analysis['energy'])
@@ -293,8 +291,7 @@ def playlists():
         valence.append(analysis['valence'])
 
     duration_ms = 0
-    while next_playlist[
-            0] != None:  # If the playlist is larger than 100 songs this will be able to get each "page"
+    while next_playlist[0] != None:  # If the playlist is larger than 100 songs this will be able to get each "page"
         next_page = spotify.get_next_playlist(next_playlist[0])
         temp_id.clear()
         for songs in next_page['items']:
@@ -322,6 +319,8 @@ def playlists():
 
     table = "<div class='row'>"
     for idx, names in enumerate(song_names):
+        if names.find("'"):
+          names = names.replace("'","")
         table += "<div class='col child'><tr><figure><td><a href='/features?feat=%s&img=%s&artist=%s&name=%s'><img src='%s' width='250' height='250'></a></td><figcaption><td>%s</td><br><td>%s</td></figcaption></figure></tr></div>" % (
             song_id[idx], song_img[idx], song_artist[idx], names,
             song_img[idx], song_artist[idx], names)
@@ -393,7 +392,8 @@ def tracks():
     name = track_data['name']
     img = track_data['album']['images'][0]['url']
     artist = track_data['artists'][0]['name']
-
+    if name.find("'"):
+      name = name.replace("'","")
     return redirect(
         url_for('audio_features',
                 feat=track_id,
